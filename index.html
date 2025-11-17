@@ -431,21 +431,24 @@
                 </div>
 
                 <!-- 3. Pantalla Practicar (UI Antigua) -->
-                <div id="choice-practice-container" class="hidden">
-                    <button id="back-mode-choice-2" class="text-sm text-blue-600 font-bold flex items-center mb-4 hover:underline">
-                        <svg data-lucide="arrow-left" class="w-4 h-4 mr-1"></svg> Volver a selección
-                    </button>
+             <div id="choice-practice-container" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="back-mode-choice-2" class="text-sm text-blue-600 font-bold flex items-center hover:underline">
+                            <svg data-lucide="arrow-left" class="w-4 h-4 mr-1"></svg> Volver a selección
+                        </button>
+                        <button id="toggle-sidebar-btn" class_attack="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200" title="Modo Enfocado">
+                            <svg data-lucide="panel-left-close" class="w-5 h-5"></svg>
+                        </button>
+                    </div>
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <!-- Columna Izquierda: Lista de Temas -->
-                        <div class="lg:col-span-1 space-y-6 border-r border-gray-200 pr-4">
+                        <div id="choice-sidebar-col" class="lg:col-span-1 space-y-6 border-r border-gray-200 pr-4">
                             <h3 class="text-xl font-bold text-gray-800 mb-4">Practicar por Tema</h3>
                             <div id="choice-loader-practice" class="loader hidden"></div>
                             <div id="choice-topics-list" class="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                                 <p class="text-sm text-gray-400 italic">No hay preguntas analizadas aún.</p>
                             </div>
                         </div>
-                        <!-- Columna Derecha: Zona de Práctica -->
-                        <div class="lg:col-span-2">
+                        <div id="choice-main-col" class="lg:col-span-2">
                             <div id="choice-practice-area" class="h-full flex flex-col justify-center items-center text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                                 <svg data-lucide="check-circle-2" class="w-16 h-16 text-gray-300 mb-4"></svg>
                                 <h3 class="text-xl font-semibold text-gray-600">Zona de Práctica</h3>
@@ -454,7 +457,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
             <!-- TAB: MODO ORAL / ESTUDIO -->
             <div id="tab-simulador" class="tab-panel space-y-6">
@@ -842,6 +844,8 @@
             };
             els.analyzeBtn.onclick = handleAnalyzeChoice;
             els.generateChoiceBtn.onclick = handleGenerateChoice; // NUEVO
+            // NUEVO: Listener Modo Enfocado
+            document.getElementById('toggle-sidebar-btn').onclick = toggleFocusMode;
             
             // Oral Modes
             els.studyModeBtn.onclick = () => { els.modeSelection.classList.add('hidden'); els.studyContainer.classList.remove('hidden'); loadSyllabusBrowser(); };
@@ -3047,7 +3051,38 @@
             const res = await callGeminiAPI(prompt, false);
             out.innerHTML = `<div class="p-4 bg-white border rounded">${res.replace(/\n/g, '<br>')}</div>`;
         }
+        // --- INICIO: NUEVA FUNCIÓN PARA MODO ENFOCADO ---
+        function toggleFocusMode() {
+            const sidebar = document.getElementById('choice-sidebar-col');
+            const mainContent = document.getElementById('choice-main-col');
+            const button = document.getElementById('toggle-sidebar-btn');
+            
+            if (!sidebar || !mainContent || !button) return;
 
+            const isHidden = sidebar.classList.contains('hidden');
+            
+            if (isHidden) {
+                // Mostrar Sidebar
+                sidebar.classList.remove('hidden');
+                mainContent.classList.remove('lg:col-span-3');
+                mainContent.classList.add('lg:col-span-2');
+                button.innerHTML = `<svg data-lucide="panel-left-close" class="w-5 h-5"></svg>`;
+                button.title = "Ocultar panel";
+            } else {
+                // Ocultar Sidebar
+                sidebar.classList.add('hidden');
+                mainContent.classList.remove('lg:col-span-2');
+                mainContent.classList.add('lg:col-span-3');
+                button.innerHTML = `<svg data-lucide="panel-right-close" class="w-5 h-5"></svg>`;
+                button.title = "Mostrar panel";
+            }
+            
+            // Re-renderizar el ícono
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+        // --- FIN: NUEVA FUNCIÓN PARA MODO ENFOCADO ---
         // --- UTILS ---
         const API_KEY = "AIzaSyA1RYWX9v5UFVVGVcI9KKyPXK3BDnIRkqw";
 
