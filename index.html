@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Título actualizado -->
-    <title>Simulador Tutor IA - V17 (Choice 2.2)</title>
+    <title>Simulador Tutor IA - V17 (Choice 2.3)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1307,7 +1307,7 @@
                     throw new Error("La pestaña 'Material' (Syllabus o Teoría) está vacía. No se puede generar preguntas.");
                 }
 
-                // --- MODIFICADO: El prompt ahora pide 'correctIndex' ---
+               // --- MODIFICADO: El prompt ahora pide 'correctIndex' y 4 o 5 opciones ---
                 const prompt = `
                     Basado en el siguiente material de estudio:
                     --- PLAN DE ESTUDIO ---
@@ -1317,8 +1317,8 @@
                     
                     Genera exactamente ${qty} preguntas de opción múltiple (Choice) de alta calidad.
                     Para CADA pregunta, asigna un 'topic' y 'unit' basándote en el material.
-                    Asegúrate de que las opciones sean 4, y la justificación sea clara.
-                    Responde SOLO con un JSON Array: [{ "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0 (un número de 0 a 3), "topic": "...", "unit": "...", "justification": "..." }]
+                    Asegúrate de que las opciones sean 4 o 5, y la justificación sea clara.
+                    Responde SOLO con un JSON Array: [{ "question": "...", "options": ["A", "B", "C", "D", "E"], "correctIndex": 0 (un número, ej: 0, 1, 2, 3, 4...), "topic": "...", "unit": "...", "justification": "..." }]
                 `;
                 
                 let txt = await callGeminiAPI(prompt, true);
@@ -1364,15 +1364,15 @@
         }
 
         async function callGeminiForChoice(examText, syllabus, theory) {
-            // --- MODIFICADO: El prompt ahora pide 'correctIndex' ---
+            // --- MODIFICADO: El prompt ahora pide 'correctIndex' y 5 opciones ---
             const prompt = `
                 Analiza este texto de examen Choice.
                 Contexto Syllabus: ${syllabus.substring(0, 2000)}...
                 Contexto Teoría: ${theory.substring(0, 2000)}...
                 Texto Examen: ${examText}
-                Tarea: Extrae preguntas, 4 opciones, 'topic', 'unit' (basado en Syllabus), y 'justification'.
-                IMPORTANTE: Deduce cuál es la respuesta correcta y devuélvela como 'correctIndex' (un número de 0 a 3).
-                Responde SOLO un JSON Array: [{ "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0, "topic": "...", "unit": "...", "justification": "..." }]
+                Tarea: Extrae preguntas, todas las opciones (pueden ser 4, 5 o más), 'topic', 'unit' (basado en Syllabus), y 'justification'.
+                IMPORTANTE: Deduce cuál es la respuesta correcta y devuélvela como 'correctIndex' (un número, ej: 0, 1, 2, 3, 4...).
+                Responde SOLO un JSON Array: [{ "question": "...", "options": ["A", "B", "C", "D", "E"], "correctIndex": 0, "topic": "...", "unit": "...", "justification": "..." }]
             `;
             let txt = await callGeminiAPI(prompt, true);
             return parseJsonFromAi(txt);
@@ -2077,7 +2077,7 @@
 
             const newCorrectIndex = parseInt(document.querySelector('input[name="correct-option"]:checked').value, 10);
 
-            if (!id || !newQuestion || newOptions.length < 4 || newCorrectIndex < 0) {
+            if (!id || !newQuestion || newOptions.length < 2 || newCorrectIndex < 0) {
                 showError("Error: Faltan datos para guardar la pregunta.");
                 return;
             }
