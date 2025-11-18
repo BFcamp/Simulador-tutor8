@@ -1048,6 +1048,11 @@
             els.choiceLoadContainer.style.display = 'none';
             els.choicePracticeContainer.style.display = 'none';
 
+            // Resetear UI de Modo Oral (FIX PARA PANTALLA BLANCA)
+            els.modeSelection.classList.remove('hidden');
+            els.studyContainer.classList.add('hidden');
+            els.examContainer.classList.add('hidden');
+            
             // Limpiar títulos
             els.reviewTitle.textContent = "Repaso (SRS)";
             els.reviewSubtitle.textContent = "Selecciona una materia o 'Ver Todas'.";
