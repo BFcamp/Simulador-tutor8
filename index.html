@@ -1075,26 +1075,44 @@
             }
         }
         
-        // --- CONTEXTO INTELIGENTE (PRIORIDAD) ---
-        function buildSmartContext(syllabus, theory, experiences, limit = 100000) {
-            // Prioridad 1: Experiencias
-            let context = "--- EXPERIENCIAS Y EXÁMENES PASADOS (ALTA PRIORIDAD) ---\n";
-            context += experiences.substring(0, limit) + "\n\n";
+      // --- CONTEXTO INTELIGENTE (PRIORIDAD DINÁMICA) ---
+        function buildSmartContext(syllabus, theory, experiences, limit = 300000, priorityMode = 'exam') {
+            let context = "";
             
-            // Si ya llenamos el límite (raro con 100k), paramos
-            if (context.length >= limit) return context;
+            if (priorityMode === 'syllabus') {
+                 // MODO ESTRUCTURA: Prioridad 1 = Syllabus (Para que no se corte la lista de temas)
+                context += "--- PLAN DE ESTUDIO (ALTA PRIORIDAD) ---\n";
+                context += syllabus.substring(0, limit) + "\n\n";
+                
+                if (context.length >= limit) return context;
 
-            // Prioridad 2: Syllabus
+                // Prioridad 2: Experiencias
+                let remaining = limit - context.length;
+                context += "--- EXPERIENCIAS Y EXÁMENES ---\n";
+                context += experiences.substring(0, remaining) + "\n\n";
+                
+                if (context.length >= limit) return context;
+            } else {
+                // MODO EXAMEN (Default): Prioridad 1 = Experiencias (Para preguntar lo que se toma)
+                context += "--- EXPERIENCIAS Y EXÁMENES PASADOS (ALTA PRIORIDAD) ---\n";
+                context += experiences.substring(0, limit) + "\n\n";
+                
+                if (context.length >= limit) return context;
+
+                // Prioridad 2: Syllabus
+                let remaining = limit - context.length;
+                context += "--- PLAN DE ESTUDIO ---\n";
+                context += syllabus.substring(0, remaining) + "\n\n";
+                
+                if (context.length >= limit) return context;
+            }
+
+            // Prioridad 3 (siempre última): Teoría
             let remaining = limit - context.length;
-            context += "--- PLAN DE ESTUDIO ---\n";
-            context += syllabus.substring(0, remaining) + "\n\n";
-            
-            if (context.length >= limit) return context;
-
-            // Prioridad 3: Teoría
-            remaining = limit - context.length;
-            context += "--- TEORÍA Y APUNTES ---\n";
-            context += theory.substring(0, remaining);
+            if (remaining > 0) {
+                context += "--- TEORÍA Y APUNTES ---\n";
+                context += theory.substring(0, remaining);
+            }
 
             return context;
         }
@@ -1606,7 +1624,10 @@
                 const experiences = document.getElementById('experiences').value;
 
                 // Prioridad inteligente (límite amplio 100k)
-                const smartContext = buildSmartContext(syllabus, theory, experiences, 100000);
+                //const smartContext = buildSmartContext(syllabus, theory, experiences, 100000);
+
+                // Usamos el modo 'syllabus' para priorizar el temario y que no se corte
+                const smartContext = buildSmartContext(syllabus, theory, experiences, 300000, 'syllabus');
                 
                 const structuredSyllabus = await parseSyllabusWithAI(smartContext);
                 
