@@ -1851,51 +1851,7 @@
 }
         //FIN LECTURA CUADRO DE TEXTO 
             
-            button.disabled = true; 
-            loader.style.display = 'inline-block';
-            answerTextEl.style.display = 'none'; 
-            answerTextEl.innerHTML = 'Generando...'; 
-            audioPlayerContainer.innerHTML = ''; 
-            saveButton.style.display = 'none'; 
-            
-            try {
-                answerTextEl.style.display = 'block';
-                
-                const syllabus = document.getElementById('syllabus').value;
-                const theory = document.getElementById('theory').value;
-                const experiences = document.getElementById('experiences').value;
-                // Usamos contexto inteligente con prioridad
-                const smartContext = buildSmartContext(syllabus, theory, experiences, 100000, 'exam');
-
-                const answerText = await callGeminiAPI(`Responde conciso para examen oral: "${question}". Usa **negrita** para claves. Contexto: ${smartContext}`, false);
-                
-                // Mostrar respuesta con formato HTML
-                answerTextEl.innerHTML = answerText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-                
-                // --- CORRECCIÓN CLAVE: Si estaba editando, mantener la edición activa ---
-                if (container.classList.contains('is-editing')) {
-                    answerTextEl.contentEditable = "true";
-                    answerTextEl.classList.add('border-blue-500', 'ring-2', 'ring-blue-100');
-                }
-                // ------------------------------------------------------------------------
-
-                const cleanAnswer = answerText.replace(/\*\*(.*?)\*\*/g, '$1'); 
-                const { audioData, mimeType } = await callGeminiTTS(cleanAnswer);
-                await playAudio(audioData, mimeType, audioPlayerContainer);
-                
-                saveButton.style.display = 'inline-flex'; 
-                saveButton.disabled = false;
-                
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-            } catch (error) { 
-                console.error(error); 
-                answerTextEl.innerHTML = `Error: ${error.message}`; 
-            } finally { 
-                button.disabled = false; 
-                loader.style.display = 'none'; 
-            }
-        }
-        async function handleSaveClick(button) {
+                  async function handleSaveClick(button) {
             const container = button.closest('.question-item');
             // Leer el texto del DOM porque puede haber sido editado
             const question = container.querySelector('.question-text').innerText.trim();
@@ -2054,39 +2010,37 @@
         }
 
       async function init() {
-    // 1. Primero activamos los botones para que respondan al clic inmediatamente
-    setupListeners(); 
+            // 1. Primero activamos los botones
+            setupListeners(); 
 
-    // 2. Configuramos el observador de estado (se activa cuando logras entrar)
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            if (!userId) {
-                // Si no hay ID guardado, mostramos el modal
-                document.getElementById('sync-modal').style.display = 'flex';
-            } else {
-                // Si ya hay ID, cargamos la app
-                document.getElementById('user-id').textContent = userId;
-                document.getElementById('sync-id-display').style.display = 'block';
-                
-                // Ocultamos el modal por si acaso estaba abierto
-                document.getElementById('sync-modal').style.display = 'none';
-                
-                await loadSubjects(); 
-                els.subjectHeader.style.display = 'block'; 
-                switchTab(currentTab); 
-                if (typeof lucide !== 'undefined') lucide.createIcons();
+            // 2. Configuramos el observador
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    if (!userId) {
+                        document.getElementById('sync-modal').style.display = 'flex';
+                    } else {
+                        document.getElementById('user-id').textContent = userId;
+                        document.getElementById('sync-id-display').style.display = 'block';
+                        document.getElementById('sync-modal').style.display = 'none';
+                        
+                        await loadSubjects(); 
+                        els.subjectHeader.style.display = 'block'; 
+                        switchTab(currentTab); 
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+                    }
+                }
+            });
+
+            // 3. Intentamos entrar
+            try {
+                await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Error crítico:", error);
             }
         }
-    });
 
-    // 3. Intentamos entrar (con manejo de errores)
-    try {
-        await signInAnonymously(auth);
-    } catch (error) {
-        console.error("Error crítico de autenticación:", error);
-        alert("Error al conectar con la base de datos: " + error.message);
-    }
-}
+       init(); 
+
     </script>
 </body>
 </html>
