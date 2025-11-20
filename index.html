@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Tutor IA - V18 (Progress & Context)</title>
+    <title>Simulador Tutor IA - V19 (Editable & Perfected)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -224,7 +224,7 @@
         </div>
     </div>
 
-    <!-- Modal de Progreso (NUEVO) -->
+    <!-- Modal de Progreso -->
     <div id="progress-modal">
         <div class="progress-box">
             <h3 id="progress-title" class="text-xl font-bold text-gray-800">Procesando...</h3>
@@ -304,7 +304,6 @@
 
             <!-- TAB: MODO CHOICE -->
             <div id="tab-choice" class="tab-panel space-y-6">
-                <!-- 1. Selección de Modo -->
                 <div id="choice-mode-selection" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div id="btn-load-choice" class="mode-card">
                         <svg data-lucide="upload-cloud" class="w-12 h-12 text-purple-600 mb-4"></svg>
@@ -318,13 +317,11 @@
                     </div>
                 </div>
 
-                <!-- 2. Pantalla Cargar/Generar -->
                 <div id="choice-load-container" class="hidden space-y-6">
                     <button id="back-mode-choice-1" class="text-sm text-blue-600 font-bold flex items-center hover:underline">
                         <svg data-lucide="arrow-left" class="w-4 h-4 mr-1"></svg> Volver a selección
                     </button>
                     
-                    <!-- Sección A: Analizar -->
                     <div class="p-6 border rounded-lg bg-gray-50">
                         <h3 class="text-xl font-bold text-gray-800 mb-2">1. Analizar Exámenes Existentes</h3>
                         <p class="text-sm text-gray-500 mb-4">Sube PDFs de choice o pega el texto para que la IA lo analice y clasifique.</p>
@@ -341,7 +338,6 @@
                         </div>
                     </div>
 
-                    <!-- Sección B: Generar -->
                     <div class="p-6 border rounded-lg bg-gray-50">
                         <h3 class="text-xl font-bold text-gray-800 mb-2">2. Generar Choice desde Teoría</h3>
                         <p class="text-sm text-gray-500 mb-4">Crea preguntas nuevas usando el contenido de tu pestaña "Material" (Teoría y Syllabus).</p>
@@ -360,7 +356,6 @@
                     </div>
                 </div>
 
-                <!-- 3. Pantalla Practicar -->
                 <div id="choice-practice-container" class="hidden">
                     <div class="flex justify-between items-center mb-4">
                         <button id="back-mode-choice-2" class="text-sm text-blue-600 font-bold flex items-center hover:underline">
@@ -387,7 +382,7 @@
                         </div>
                     </div>
                 </div>
-            </div> <!-- CIERRE TAB CHOICE -->
+            </div> 
 
             <!-- TAB: MODO ORAL / ESTUDIO -->
             <div id="tab-simulador" class="tab-panel space-y-6">
@@ -403,7 +398,6 @@
                         <p class="text-gray-500 mt-2">Preguntas al azar de toda la materia.</p>
                     </div>
                 </div>
-                <!-- Contenedores ocultos -->
                 <div id="study-container" class="hidden">
                     <button id="back-mode-1" class="mb-4 text-sm text-blue-600 font-bold flex items-center"><svg data-lucide="arrow-left" class="w-4 h-4 mr-1"></svg> Volver</button>
                     <h2 class="text-2xl font-bold mb-4">Estructura de Temas (IA)</h2>
@@ -425,7 +419,7 @@
                 </div>
             </div>
 
-            <!-- TAB: REPASAR (MATERIA O GLOBAL) -->
+            <!-- TAB: REPASAR -->
             <div id="tab-review" class="tab-panel space-y-6">
                 <div class="flex justify-between items-center bg-blue-50 p-4 rounded-lg border border-blue-100">
                     <div>
@@ -437,9 +431,7 @@
                         <span class="text-xs block text-gray-500">pendientes</span>
                     </div>
                 </div>
-                <!-- Disclaimer de Vencidas -->
                 <div id="review-overdue" class="overdue-disclaimer" style="display: none;"></div>
-                
                 <div id="review-loader" class="loader hidden"></div>
                 <div id="review-list" class="space-y-4 min-h-[200px]">
                     <p class="text-gray-400 text-center py-10">Selecciona una materia (o "Ver Todas") para ver tus repasos.</p>
@@ -455,7 +447,6 @@
                     <button id="merge-topics-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg text-sm disabled:opacity-50" disabled>Fusionar Seleccionados</button>
                     <button id="create-subtopic-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg text-sm disabled:opacity-50" disabled>Crear Subtema</button>
                 </div>
-
                 <div id="topic-manager-loader" class="text-center hidden">
                     <div class="loader"></div>
                     <p class="text-gray-500">Cargando todos los temas...</p>
@@ -707,7 +698,6 @@
             els.studyModeBtn.onclick = () => { 
                 els.modeSelection.classList.add('hidden'); 
                 els.studyContainer.classList.remove('hidden'); 
-                // Llama a syllabus con el loader de progreso
                 loadSyllabusBrowser(); 
             };
             els.examModeBtn.onclick = () => { els.modeSelection.classList.add('hidden'); els.examContainer.classList.remove('hidden'); };
@@ -1034,7 +1024,7 @@
                 // Smart Context Construction
                 // PRIORIDAD: Experiencias > Syllabus > Teoría
                 // Aumentamos límite a 50k caracteres para análisis
-                const smartContext = buildSmartContext(syllabus, theory, experiences, 50000);
+                const smartContext = buildSmartContext(syllabus, theory, experiences, 50000, 'exam');
 
                 const textChunks = chunkText(rawText);
                 let allParsedQuestions = [];
@@ -1076,48 +1066,6 @@
             }
         }
         
-      // --- CONTEXTO INTELIGENTE (PRIORIDAD DINÁMICA) ---
-        function buildSmartContext(syllabus, theory, experiences, limit = 300000, priorityMode = 'exam') {
-            let context = "";
-            
-            if (priorityMode === 'syllabus') {
-                 // MODO ESTRUCTURA: Prioridad 1 = Syllabus (Para que no se corte la lista de temas)
-                context += "--- PLAN DE ESTUDIO (ALTA PRIORIDAD) ---\n";
-                context += syllabus.substring(0, limit) + "\n\n";
-                
-                if (context.length >= limit) return context;
-
-                // Prioridad 2: Experiencias
-                let remaining = limit - context.length;
-                context += "--- EXPERIENCIAS Y EXÁMENES ---\n";
-                context += experiences.substring(0, remaining) + "\n\n";
-                
-                if (context.length >= limit) return context;
-            } else {
-                // MODO EXAMEN (Default): Prioridad 1 = Experiencias (Para preguntar lo que se toma)
-                context += "--- EXPERIENCIAS Y EXÁMENES PASADOS (ALTA PRIORIDAD) ---\n";
-                context += experiences.substring(0, limit) + "\n\n";
-                
-                if (context.length >= limit) return context;
-
-                // Prioridad 2: Syllabus
-                let remaining = limit - context.length;
-                context += "--- PLAN DE ESTUDIO ---\n";
-                context += syllabus.substring(0, remaining) + "\n\n";
-                
-                if (context.length >= limit) return context;
-            }
-
-            // Prioridad 3 (siempre última): Teoría
-            let remaining = limit - context.length;
-            if (remaining > 0) {
-                context += "--- TEORÍA Y APUNTES ---\n";
-                context += theory.substring(0, remaining);
-            }
-
-            return context;
-        }
-
         async function handleGenerateChoice() {
             if (!currentSubject || currentSubject === 'all') return showError("Selecciona una materia específica.");
             
@@ -1132,8 +1080,8 @@
 
                 if (!syllabus.trim() && !theory.trim() && !experiences.trim()) throw new Error("El material está vacío.");
                 
-                // Usamos 100k de contexto
-                const contextMaterial = buildSmartContext(syllabus, theory, experiences, 100000);
+                // Usamos 300k de contexto
+                const contextMaterial = buildSmartContext(syllabus, theory, experiences, 300000, 'exam');
 
                 const prompt = `
                     Basado en el siguiente material (Prioriza lo que se toma en exámenes):
@@ -1624,10 +1572,8 @@
                 const theory = document.getElementById('theory').value;
                 const experiences = document.getElementById('experiences').value;
 
-                // Prioridad inteligente (límite amplio 100k)
-                //const smartContext = buildSmartContext(syllabus, theory, experiences, 100000);
-
-                // Usamos el modo 'syllabus' para priorizar el temario y que no se corte
+                // Prioridad inteligente (límite amplio 300k)
+                // MODO 'syllabus' para priorizar temario
                 const smartContext = buildSmartContext(syllabus, theory, experiences, 300000, 'syllabus');
                 
                 const structuredSyllabus = await parseSyllabusWithAI(smartContext);
@@ -1690,7 +1636,7 @@
             const syllabus = document.getElementById('syllabus').value;
             const theory = document.getElementById('theory').value;
             const experiences = document.getElementById('experiences').value;
-            const smartContext = buildSmartContext(syllabus, theory, experiences, 100000);
+            const smartContext = buildSmartContext(syllabus, theory, experiences, 300000, 'exam');
 
             const systemPrompt = "Eres Tutor Médico. Crea Guía de Estudio JSON. 5-7 subtemas con Importancia (Alta/Media/Baja), justificación y pregunta clave. PRIORIZA TEMAS DE EXPERIENCIAS DE EXAMEN.";
             const userQuery = `Tema: "${topicName}" (Unidad: "${unitName}") Material:\n${smartContext}\nGenera JSON.`;
@@ -1725,7 +1671,7 @@
                 const syllabus = document.getElementById('syllabus').value;
                 const theory = document.getElementById('theory').value;
                 const experiences = document.getElementById('experiences').value;
-                const smartContext = buildSmartContext(syllabus, theory, experiences, 50000);
+                const smartContext = buildSmartContext(syllabus, theory, experiences, 50000, 'exam');
 
                 const resultText = await callGeminiAPI(`Contexto: ${smartContext}\nTema: "${topic}", Subtema: "${subtopic}". Genera 3 preguntas examen oral cortas.`, false); 
                 const newQuestions = resultText.split('\n').filter(q => q.trim().length > 0);
@@ -1734,8 +1680,41 @@
             } catch (error) { container.innerHTML += '<p class="text-red-500">Error.</p>'; } 
             finally { button.disabled = false; loader.style.display = 'none'; }
         }
+        
+        // --- NUEVA FUNCIÓN DE EDICIÓN DE ITEM ---
+        function toggleEditItem(btn) {
+            const container = btn.closest('.question-item');
+            const qText = container.querySelector('.question-text');
+            const aText = container.querySelector('.answer-text');
+            const isEditing = qText.isContentEditable;
+            
+            if (isEditing) {
+                qText.contentEditable = "false";
+                if(aText) aText.contentEditable = "false";
+                
+                qText.classList.remove('bg-white', 'border-blue-300', 'shadow-inner');
+                if(aText) aText.classList.remove('border-blue-500', 'ring-2', 'ring-blue-100');
+                
+                btn.innerHTML = '<svg data-lucide="pencil" class="w-4 h-4"></svg>';
+                btn.classList.remove('text-green-600', 'bg-green-100');
+                btn.classList.add('text-gray-400');
+            } else {
+                qText.contentEditable = "true";
+                if(aText && aText.style.display !== 'none') aText.contentEditable = "true";
+                
+                qText.classList.add('bg-white', 'border-blue-300', 'shadow-inner');
+                qText.focus();
+                if(aText && aText.style.display !== 'none') aText.classList.add('border-blue-500', 'ring-2', 'ring-blue-100');
+                
+                btn.innerHTML = '<svg data-lucide="check" class="w-4 h-4"></svg>';
+                btn.classList.remove('text-gray-400');
+                btn.classList.add('text-green-600', 'bg-green-100');
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
 
-       function createQuestionItemHTML(question, unitName, topicName) {
+        // --- NUEVA ESTRUCTURA DE PREGUNTA CON BOTÓN EDITAR ---
+        function createQuestionItemHTML(question, unitName, topicName) {
             return `
                 <div class="question-item py-4 group transition-all hover:bg-gray-50 rounded-lg px-2">
                     <div class="flex justify-between items-start gap-2">
@@ -1774,7 +1753,7 @@
                 const syllabus = document.getElementById('syllabus').value;
                 const theory = document.getElementById('theory').value;
                 const experiences = document.getElementById('experiences').value;
-                const smartContext = buildSmartContext(syllabus, theory, experiences, 50000);
+                const smartContext = buildSmartContext(syllabus, theory, experiences, 100000, 'exam');
 
                 const answerText = await callGeminiAPI(`Responde conciso para examen oral: "${question}". Usa **negrita** para claves. Contexto: ${smartContext}`, false);
                 answerTextEl.innerHTML = answerText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
@@ -1787,40 +1766,29 @@
             finally { button.disabled = false; loader.style.display = 'none'; }
         }
 
-      async function handleSaveClick(button) {
+        async function handleSaveClick(button) {
             const container = button.closest('.question-item');
-            
-            // LEER DEL DOM (Lo que ves en pantalla), no del dataset antiguo
+            // Leer el texto del DOM porque puede haber sido editado
             const question = container.querySelector('.question-text').innerText.trim();
             const answer = container.querySelector('.answer-text').innerHTML;
-            const { topic, unit } = button.dataset; // El tema y unidad sí los mantenemos del botón
+            const { topic, unit } = button.dataset;
 
             if (!currentSubject) return showError("Selecciona materia.");
-            
-            button.disabled = true; 
-            button.innerHTML = "Guardando...";
-            
+            button.disabled = true; button.innerHTML = "Guardando...";
             try {
                 await addDoc(collection(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', currentSubject, 'saved_questions'), { 
-                    unit, topic, question, answer, // Se guardan los textos editados
-                    createdAt: serverTimestamp(), 
-                    reviewStep: 0, 
-                    nextReviewDate: serverTimestamp() 
+                    unit, topic, question, answer, 
+                    createdAt: serverTimestamp(), reviewStep: 0, nextReviewDate: serverTimestamp() 
                 });
-                
                 button.innerHTML = "¡Guardado!";
-                // Desactivar edición si estaba activa para confirmar visualmente
+                
+                // Si estaba en modo edición, salir para confirmar visualmente
                 const editBtn = container.querySelector('.edit-item-btn');
                 const qText = container.querySelector('.question-text');
                 if (qText.isContentEditable && editBtn) toggleEditItem(editBtn);
 
                 if (currentTab === 'review') loadReviewData(currentSubject);
-            } catch (error) { 
-                console.error(error); 
-                showError("Error guardando."); 
-                button.disabled = false; 
-                button.innerHTML = "Reintentar"; 
-            }
+            } catch (error) { console.error(error); showError("Error guardando."); button.disabled = false; button.innerHTML = "Reintentar"; }
         }
 
         async function callGeminiTTS(text) {
@@ -1877,51 +1845,6 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        function toggleEditItem(btn) {
-            const container = btn.closest('.question-item');
-            const qText = container.querySelector('.question-text');
-            const aText = container.querySelector('.answer-text');
-            
-            // Comprobamos si ya estamos editando
-            const isEditing = qText.isContentEditable;
-            
-            if (isEditing) {
-                // GUARDAR CAMBIOS (Visualmente)
-                qText.contentEditable = "false";
-                aText.contentEditable = "false";
-                
-                // Restaurar estilos
-                qText.classList.remove('bg-white', 'border-blue-300', 'shadow-inner');
-                aText.classList.remove('border-blue-500', 'ring-2', 'ring-blue-100');
-                
-                // Cambiar ícono a lápiz
-                btn.innerHTML = '<svg data-lucide="pencil" class="w-4 h-4"></svg>';
-                btn.classList.remove('text-green-600', 'bg-green-100');
-                btn.classList.add('text-gray-400');
-                
-            } else {
-                // ACTIVAR EDICIÓN
-                qText.contentEditable = "true";
-                // Solo hacer editable la respuesta si es visible
-                if(aText && aText.style.display !== 'none') aText.contentEditable = "true";
-                
-                // Aplicar estilos de "campo de texto"
-                qText.classList.add('bg-white', 'border-blue-300', 'shadow-inner');
-                qText.focus(); // Poner foco en la pregunta
-                
-                if(aText && aText.style.display !== 'none') {
-                    aText.classList.add('border-blue-500', 'ring-2', 'ring-blue-100');
-                }
-                
-                // Cambiar ícono a check (confirmar)
-                btn.innerHTML = '<svg data-lucide="check" class="w-4 h-4"></svg>';
-                btn.classList.remove('text-gray-400');
-                btn.classList.add('text-green-600', 'bg-green-100');
-            }
-            
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-        
         const API_KEY = "AIzaSyA1RYWX9v5UFVVGVcI9KKyPXK3BDnIRkqw"; 
 
         async function callGeminiAPI(userQuery, expectJson, systemPrompt = null, generationConfig = null) {
@@ -1957,6 +1880,48 @@
             const h = document.getElementById('error-title');
             h.textContent = isError ? "Error" : "Éxito"; h.className = isError ? "text-red-600 font-bold text-lg mb-2" : "text-green-600 font-bold text-lg mb-2";
             m.style.display = 'flex';
+        }
+
+        // --- CONTEXTO INTELIGENTE (PRIORIDAD DINÁMICA) ---
+        function buildSmartContext(syllabus, theory, experiences, limit = 300000, priorityMode = 'exam') {
+            let context = "";
+            
+            if (priorityMode === 'syllabus') {
+                 // MODO ESTRUCTURA: Prioridad 1 = Syllabus (Para que no se corte la lista de temas)
+                context += "--- PLAN DE ESTUDIO (ALTA PRIORIDAD) ---\n";
+                context += syllabus.substring(0, limit) + "\n\n";
+                
+                if (context.length >= limit) return context;
+
+                // Prioridad 2: Experiencias
+                let remaining = limit - context.length;
+                context += "--- EXPERIENCIAS Y EXÁMENES ---\n";
+                context += experiences.substring(0, remaining) + "\n\n";
+                
+                if (context.length >= limit) return context;
+            } else {
+                // MODO EXAMEN (Default): Prioridad 1 = Experiencias (Para preguntar lo que se toma)
+                context += "--- EXPERIENCIAS Y EXÁMENES PASADOS (ALTA PRIORIDAD) ---\n";
+                context += experiences.substring(0, limit) + "\n\n";
+                
+                if (context.length >= limit) return context;
+
+                // Prioridad 2: Syllabus
+                let remaining = limit - context.length;
+                context += "--- PLAN DE ESTUDIO ---\n";
+                context += syllabus.substring(0, remaining) + "\n\n";
+                
+                if (context.length >= limit) return context;
+            }
+
+            // Prioridad 3 (siempre última): Teoría
+            let remaining = limit - context.length;
+            if (remaining > 0) {
+                context += "--- TEORÍA Y APUNTES ---\n";
+                context += theory.substring(0, remaining);
+            }
+
+            return context;
         }
 
         init();
