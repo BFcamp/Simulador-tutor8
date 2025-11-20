@@ -731,6 +731,7 @@
             document.getElementById('study-output').addEventListener('click', (e) => {
                 if (e.target.closest('.answer-btn')) handleAnswerClick(e.target.closest('.answer-btn'));
                 else if (e.target.closest('.save-btn')) handleSaveClick(e.target.closest('.save-btn'));
+                else if (e.target.closest('.edit-item-btn')) toggleEditItem(e.target.closest('.edit-item-btn')); // NUEVO
                 else if (e.target.closest('.generate-more-btn')) handleGenerateMoreQuestions(e.target.closest('.generate-more-btn'));
             });
 
@@ -1734,8 +1735,31 @@
             finally { button.disabled = false; loader.style.display = 'none'; }
         }
 
-        function createQuestionItemHTML(question, unitName, topicName) {
-            return `<div class="question-item py-4"><p class="question-text">${question}</p><button class="answer-btn mt-3 px-4 py-1.5 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors inline-flex items-center" data-question="${question}"><svg data-lucide="volume-2" class="w-4 h-4 mr-2"></svg> Responder y Escuchar <div class="answer-loader" style="display: none;"></div></button><button class="save-btn mt-3 ml-2 px-4 py-1.5 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 transition-colors inline-flex items-center" data-question="${question}" data-topic="${topicName}" data-unit="${unitName}" style="display: none;"><svg data-lucide="save" class="w-4 h-4 mr-2"></svg> Guardar</button><div class="answer-text" contenteditable="false" style="display: none;"></div><div class="audio-player-container"></div></div>`;
+       function createQuestionItemHTML(question, unitName, topicName) {
+            return `
+                <div class="question-item py-4 group transition-all hover:bg-gray-50 rounded-lg px-2">
+                    <div class="flex justify-between items-start gap-2">
+                        <div class="question-text font-semibold text-gray-800 p-2 rounded border border-transparent flex-1">${question}</div>
+                        <button class="edit-item-btn text-gray-400 hover:text-blue-600 p-1 rounded transition-colors" title="Editar texto">
+                            <svg data-lucide="pencil" class="w-4 h-4"></svg>
+                        </button>
+                    </div>
+                    
+                    <div class="flex gap-2 mt-2 pl-2">
+                        <button class="answer-btn px-4 py-1.5 bg-blue-100 text-blue-700 text-sm font-bold rounded-md hover:bg-blue-200 transition-colors inline-flex items-center" data-question="${question.replace(/"/g, '&quot;')}">
+                            <svg data-lucide="volume-2" class="w-4 h-4 mr-2"></svg> Responder
+                            <div class="answer-loader" style="display: none;"></div>
+                        </button>
+                        
+                        <button class="save-btn ml-2 px-4 py-1.5 bg-green-100 text-green-700 text-sm font-bold rounded-md hover:bg-green-200 transition-colors inline-flex items-center" data-topic="${topicName}" data-unit="${unitName}" style="display: none;">
+                            <svg data-lucide="save" class="w-4 h-4 mr-2"></svg> Guardar
+                        </button>
+                    </div>
+
+                    <div class="answer-text mt-3 mx-2 p-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm" contenteditable="false" style="display: none;"></div>
+                    <div class="audio-player-container px-2"></div>
+                </div>
+            `;
         }
 
         async function handleAnswerClick(button) {
@@ -1763,16 +1787,40 @@
             finally { button.disabled = false; loader.style.display = 'none'; }
         }
 
-        async function handleSaveClick(button) {
-            const { topic, question, unit } = button.dataset;
-            const answer = button.closest('.question-item').querySelector('.answer-text').innerHTML;
+      async function handleSaveClick(button) {
+            const container = button.closest('.question-item');
+            
+            // LEER DEL DOM (Lo que ves en pantalla), no del dataset antiguo
+            const question = container.querySelector('.question-text').innerText.trim();
+            const answer = container.querySelector('.answer-text').innerHTML;
+            const { topic, unit } = button.dataset; // El tema y unidad sí los mantenemos del botón
+
             if (!currentSubject) return showError("Selecciona materia.");
-            button.disabled = true; button.innerHTML = "Guardando...";
+            
+            button.disabled = true; 
+            button.innerHTML = "Guardando...";
+            
             try {
-                await addDoc(collection(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', currentSubject, 'saved_questions'), { unit, topic, question, answer, createdAt: serverTimestamp(), reviewStep: 0, nextReviewDate: serverTimestamp() });
+                await addDoc(collection(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', currentSubject, 'saved_questions'), { 
+                    unit, topic, question, answer, // Se guardan los textos editados
+                    createdAt: serverTimestamp(), 
+                    reviewStep: 0, 
+                    nextReviewDate: serverTimestamp() 
+                });
+                
                 button.innerHTML = "¡Guardado!";
+                // Desactivar edición si estaba activa para confirmar visualmente
+                const editBtn = container.querySelector('.edit-item-btn');
+                const qText = container.querySelector('.question-text');
+                if (qText.isContentEditable && editBtn) toggleEditItem(editBtn);
+
                 if (currentTab === 'review') loadReviewData(currentSubject);
-            } catch (error) { console.error(error); showError("Error guardando."); button.disabled = false; button.innerHTML = "Reintentar"; }
+            } catch (error) { 
+                console.error(error); 
+                showError("Error guardando."); 
+                button.disabled = false; 
+                button.innerHTML = "Reintentar"; 
+            }
         }
 
         async function callGeminiTTS(text) {
@@ -1829,6 +1877,51 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
+        function toggleEditItem(btn) {
+            const container = btn.closest('.question-item');
+            const qText = container.querySelector('.question-text');
+            const aText = container.querySelector('.answer-text');
+            
+            // Comprobamos si ya estamos editando
+            const isEditing = qText.isContentEditable;
+            
+            if (isEditing) {
+                // GUARDAR CAMBIOS (Visualmente)
+                qText.contentEditable = "false";
+                aText.contentEditable = "false";
+                
+                // Restaurar estilos
+                qText.classList.remove('bg-white', 'border-blue-300', 'shadow-inner');
+                aText.classList.remove('border-blue-500', 'ring-2', 'ring-blue-100');
+                
+                // Cambiar ícono a lápiz
+                btn.innerHTML = '<svg data-lucide="pencil" class="w-4 h-4"></svg>';
+                btn.classList.remove('text-green-600', 'bg-green-100');
+                btn.classList.add('text-gray-400');
+                
+            } else {
+                // ACTIVAR EDICIÓN
+                qText.contentEditable = "true";
+                // Solo hacer editable la respuesta si es visible
+                if(aText && aText.style.display !== 'none') aText.contentEditable = "true";
+                
+                // Aplicar estilos de "campo de texto"
+                qText.classList.add('bg-white', 'border-blue-300', 'shadow-inner');
+                qText.focus(); // Poner foco en la pregunta
+                
+                if(aText && aText.style.display !== 'none') {
+                    aText.classList.add('border-blue-500', 'ring-2', 'ring-blue-100');
+                }
+                
+                // Cambiar ícono a check (confirmar)
+                btn.innerHTML = '<svg data-lucide="check" class="w-4 h-4"></svg>';
+                btn.classList.remove('text-gray-400');
+                btn.classList.add('text-green-600', 'bg-green-100');
+            }
+            
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        
         const API_KEY = "AIzaSyA1RYWX9v5UFVVGVcI9KKyPXK3BDnIRkqw"; 
 
         async function callGeminiAPI(userQuery, expectJson, systemPrompt = null, generationConfig = null) {
