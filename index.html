@@ -1681,38 +1681,53 @@
             finally { button.disabled = false; loader.style.display = 'none'; }
         }
         
-        // --- NUEVA FUNCIÓN DE EDICIÓN DE ITEM ---
+       // --- FUNCIÓN DE EDICIÓN MEJORADA ---
         function toggleEditItem(btn) {
             const container = btn.closest('.question-item');
             const qText = container.querySelector('.question-text');
             const aText = container.querySelector('.answer-text');
-            const isEditing = qText.isContentEditable;
+            
+            // Usamos una clase para saber el estado real
+            const isEditing = container.classList.contains('is-editing');
             
             if (isEditing) {
+                // DESACTIVAR EDICIÓN (Guardar visualmente)
+                container.classList.remove('is-editing');
                 qText.contentEditable = "false";
                 if(aText) aText.contentEditable = "false";
                 
+                // Quitar estilos de edición
                 qText.classList.remove('bg-white', 'border-blue-300', 'shadow-inner');
                 if(aText) aText.classList.remove('border-blue-500', 'ring-2', 'ring-blue-100');
                 
+                // Volver al ícono de lápiz
                 btn.innerHTML = '<svg data-lucide="pencil" class="w-4 h-4"></svg>';
                 btn.classList.remove('text-green-600', 'bg-green-100');
                 btn.classList.add('text-gray-400');
             } else {
+                // ACTIVAR EDICIÓN
+                container.classList.add('is-editing');
                 qText.contentEditable = "true";
-                if(aText && aText.style.display !== 'none') aText.contentEditable = "true";
                 
+                // Si existe respuesta, hacerla editable
+                if(aText) {
+                    aText.contentEditable = "true";
+                    if (aText.style.display !== 'none') {
+                        aText.classList.add('border-blue-500', 'ring-2', 'ring-blue-100');
+                    }
+                }
+                
+                // Estilos de edición para la pregunta
                 qText.classList.add('bg-white', 'border-blue-300', 'shadow-inner');
                 qText.focus();
-                if(aText && aText.style.display !== 'none') aText.classList.add('border-blue-500', 'ring-2', 'ring-blue-100');
                 
+                // Cambiar ícono a Check
                 btn.innerHTML = '<svg data-lucide="check" class="w-4 h-4"></svg>';
                 btn.classList.remove('text-gray-400');
                 btn.classList.add('text-green-600', 'bg-green-100');
             }
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
-
         // --- NUEVA ESTRUCTURA DE PREGUNTA CON BOTÓN EDITAR ---
         function createQuestionItemHTML(question, unitName, topicName) {
             return `
@@ -1742,30 +1757,57 @@
         }
 
         async function handleAnswerClick(button) {
-            const question = button.dataset.question; const container = button.closest('.question-item');
-            const loader = button.querySelector('.answer-loader'); const answerTextEl = container.querySelector('.answer-text');
-            const audioPlayerContainer = container.querySelector('.audio-player-container'); const saveButton = container.querySelector('.save-btn'); 
-            button.disabled = true; loader.style.display = 'inline-block';
-            answerTextEl.style.display = 'none'; answerTextEl.innerHTML = 'Generando...'; audioPlayerContainer.innerHTML = ''; saveButton.style.display = 'none'; 
+            const question = button.dataset.question; 
+            const container = button.closest('.question-item');
+            const loader = button.querySelector('.answer-loader'); 
+            const answerTextEl = container.querySelector('.answer-text');
+            const audioPlayerContainer = container.querySelector('.audio-player-container'); 
+            const saveButton = container.querySelector('.save-btn'); 
+            
+            button.disabled = true; 
+            loader.style.display = 'inline-block';
+            answerTextEl.style.display = 'none'; 
+            answerTextEl.innerHTML = 'Generando...'; 
+            audioPlayerContainer.innerHTML = ''; 
+            saveButton.style.display = 'none'; 
+            
             try {
                 answerTextEl.style.display = 'block';
                 
                 const syllabus = document.getElementById('syllabus').value;
                 const theory = document.getElementById('theory').value;
                 const experiences = document.getElementById('experiences').value;
+                // Usamos contexto inteligente con prioridad
                 const smartContext = buildSmartContext(syllabus, theory, experiences, 100000, 'exam');
 
                 const answerText = await callGeminiAPI(`Responde conciso para examen oral: "${question}". Usa **negrita** para claves. Contexto: ${smartContext}`, false);
+                
+                // Mostrar respuesta con formato HTML
                 answerTextEl.innerHTML = answerText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                
+                // --- CORRECCIÓN CLAVE: Si estaba editando, mantener la edición activa ---
+                if (container.classList.contains('is-editing')) {
+                    answerTextEl.contentEditable = "true";
+                    answerTextEl.classList.add('border-blue-500', 'ring-2', 'ring-blue-100');
+                }
+                // ------------------------------------------------------------------------
+
                 const cleanAnswer = answerText.replace(/\*\*(.*?)\*\*/g, '$1'); 
                 const { audioData, mimeType } = await callGeminiTTS(cleanAnswer);
                 await playAudio(audioData, mimeType, audioPlayerContainer);
-                saveButton.style.display = 'inline-flex'; saveButton.disabled = false;
+                
+                saveButton.style.display = 'inline-flex'; 
+                saveButton.disabled = false;
+                
                 if (typeof lucide !== 'undefined') lucide.createIcons();
-            } catch (error) { console.error(error); answerTextEl.innerHTML = `Error: ${error.message}`; } 
-            finally { button.disabled = false; loader.style.display = 'none'; }
+            } catch (error) { 
+                console.error(error); 
+                answerTextEl.innerHTML = `Error: ${error.message}`; 
+            } finally { 
+                button.disabled = false; 
+                loader.style.display = 'none'; 
+            }
         }
-
         async function handleSaveClick(button) {
             const container = button.closest('.question-item');
             // Leer el texto del DOM porque puede haber sido editado
