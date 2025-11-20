@@ -632,24 +632,6 @@
             progressStep: document.getElementById('progress-step'),
         };
 
-        async function init() {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    if (!userId) {
-                        document.getElementById('sync-modal').style.display = 'flex';
-                    } else {
-                        document.getElementById('user-id').textContent = userId;
-                        document.getElementById('sync-id-display').style.display = 'block';
-                        await loadSubjects(); 
-                        els.subjectHeader.style.display = 'block'; 
-                        switchTab(currentTab); 
-                        if (typeof lucide !== 'undefined') lucide.createIcons();
-                    }
-                }
-            });
-            await signInAnonymously(auth);
-            setupListeners();
-        }
 
         function setupListeners() {
             els.tabs.forEach(btn => {
