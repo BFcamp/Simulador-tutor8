@@ -206,6 +206,41 @@
             background-color: #f9fafb; border: 1px solid #e5e7eb; border-left: 4px solid #2563eb; padding: 10px 14px;
         }
         .audio-player-container audio { width: 100%; height: 38px; margin-top: 8px; }
+
+                /* --- PARCHE 1: MODO ORGANIZACIÓN & REPASO --- */
+        
+        /* Contenedores de organización (Drag & Drop) */
+        .org-container {
+            border: 2px dashed #cbd5e1; border-radius: 12px; padding: 16px; min-height: 100px;
+            background-color: #f8fafc; margin-bottom: 16px; transition: all 0.2s;
+        }
+        .org-container.drag-over { background-color: #eff6ff; border-color: #3b82f6; }
+        
+        /* Elementos arrastrables (Temas) */
+        .org-topic-item {
+            background: white; border: 1px solid #e2e8f0; padding: 10px; margin-bottom: 8px; border-radius: 8px;
+            cursor: grab; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .org-topic-item:active { cursor: grabbing; }
+        .org-topic-item.dragging { opacity: 0.5; transform: scale(0.98); }
+
+        /* Tarjetas de Grupo en Repaso */
+        .review-group-card {
+            background: white; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 16px; overflow: hidden;
+            transition: all 0.2s;
+        }
+        .review-group-header {
+            padding: 16px; background-color: #fff; cursor: pointer; border-bottom: 1px solid transparent;
+        }
+        .review-group-card.expanded .review-group-header { border-bottom-color: #e5e7eb; background-color: #f9fafb; }
+        
+        .review-group-body { display: none; padding: 16px; background-color: #ffffff; }
+        .review-group-card.expanded .review-group-body { display: block; }
+
+        /* Barra de progreso específica para grupos */
+        .group-progress-bg { height: 8px; width: 100%; background-color: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+        .group-progress-fill { height: 100%; background-color: #10b981; border-radius: 4px; width: 0%; transition: width 0.5s; }
+    
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -398,16 +433,29 @@
                         <p class="text-gray-500 mt-2">Preguntas al azar de toda la materia.</p>
                     </div>
                 </div>
-                <div id="study-container" class="hidden">
-                    <button id="back-mode-1" class="mb-4 text-sm text-blue-600 font-bold flex items-center"><svg data-lucide="arrow-left" class="w-4 h-4 mr-1"></svg> Volver</button>
-                    <h2 class="text-2xl font-bold mb-4">Estructura de Temas (IA)</h2>
-                    <p class="text-sm text-gray-500 mb-4 -mt-2">Esta estructura se genera usando tu Syllabus, Teoría y Exámenes.</p>
+                                <div id="study-container" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="back-mode-1" class="text-sm text-blue-600 font-bold flex items-center">
+                            <svg data-lucide="arrow-left" class="w-4 h-4 mr-1"></svg> Volver
+                        </button>
+                        <!-- NUEVO BOTÓN REGENERAR (oculto por defecto hasta que se cargue algo) -->
+                        <button id="regenerate-syllabus-btn" class="text-xs px-3 py-1 bg-red-100 text-red-600 font-bold rounded hover:bg-red-200 flex items-center gap-1" style="display: none;">
+                            <svg data-lucide="refresh-cw" class="w-3 h-3"></svg> Regenerar Estructura
+                        </button>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold mb-2">Estructura de Temas (IA)</h2>
+                    <p class="text-sm text-gray-500 mb-4">Esta estructura se genera usando tu Syllabus, Teoría y Exámenes.</p>
+                    
                     <div id="syllabus-browser" class="bg-gray-50 p-4 rounded-lg max-h-[400px] overflow-y-auto">
                         <div class="loader"></div>
                         <p class="text-center text-gray-500">Analizando todo el material...</p>
                     </div>
+                    
                     <div id="study-output" class="mt-6 space-y-6"></div>
                 </div>
+
+
                 <div id="exam-container" class="hidden">
                     <button id="back-mode-2" class="mb-4 text-sm text-blue-600 font-bold flex items-center"><svg data-lucide="arrow-left" class="w-4 h-4 mr-1"></svg> Volver</button>
                     <div class="bg-white p-6 rounded-lg border border-gray-200 text-center">
@@ -420,23 +468,76 @@
             </div>
 
             <!-- TAB: REPASAR -->
+                        <!-- TAB: REPASAR (PARCHE 3 APLICADO) -->
             <div id="tab-review" class="tab-panel space-y-6">
+                
+                <!-- Header de la Pestaña -->
                 <div class="flex justify-between items-center bg-blue-50 p-4 rounded-lg border border-blue-100">
                     <div>
                         <h2 id="review-title" class="text-lg font-bold text-blue-900">Repaso (SRS)</h2>
-                        <p id="review-subtitle" class="text-sm text-blue-700">Tarjetas de "Modo Oral" y flashcards de errores de "Modo Choice".</p>
+                        <p id="review-subtitle" class="text-sm text-blue-700">Tarjetas de "Modo Oral" y flashcards.</p>
                     </div>
-                    <div class="text-right">
-                        <span id="review-count" class="text-3xl font-extrabold text-blue-600">0</span>
-                        <span class="text-xs block text-gray-500">pendientes</span>
+                    <div class="flex items-center gap-4">
+                        <div class="text-right">
+                            <span id="review-count" class="text-3xl font-extrabold text-blue-600">0</span>
+                            <span class="text-xs block text-gray-500">pendientes</span>
+                        </div>
+                        <!-- Nuevo Botón Toggle Organizar -->
+                        <button id="toggle-org-mode-btn" class="ml-4 px-4 py-2 bg-white border border-blue-200 text-blue-700 font-bold rounded-lg hover:bg-blue-50 text-sm flex items-center gap-2 shadow-sm transition-all">
+                            <svg data-lucide="layout" class="w-4 h-4"></svg> Organizar
+                        </button>
                     </div>
                 </div>
+
                 <div id="review-overdue" class="overdue-disclaimer" style="display: none;"></div>
                 <div id="review-loader" class="loader hidden"></div>
-                <div id="review-list" class="space-y-4 min-h-[200px]">
-                    <p class="text-gray-400 text-center py-10">Selecciona una materia (o "Ver Todas") para ver tus repasos.</p>
+
+                <!-- VISTA 1: MODO NORMAL (Lista de Contenedores y Temas Sueltos) -->
+                <div id="review-view-mode">
+                    <!-- Aquí aparecerán los grupos creados -->
+                    <div id="review-containers-list" class="space-y-4 mb-6"></div>
+                    
+                    <h3 class="text-gray-700 font-bold mb-2 text-sm uppercase tracking-wide">Temas Sueltos / Sin Agrupar</h3>
+                    <div id="review-list" class="space-y-4 min-h-[100px]">
+                        <p class="text-gray-400 text-center py-10">Cargando repasos...</p>
+                    </div>
                 </div>
+
+                <!-- VISTA 2: MODO ORGANIZACIÓN (Drag & Drop) - Oculto por defecto -->
+                <div id="review-org-mode" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 h-[600px]">
+                    
+                    <!-- Columna Izquierda: Temas Disponibles (Origen) -->
+                    <div class="flex flex-col h-full border rounded-xl bg-white overflow-hidden shadow-sm">
+                        <div class="p-4 border-b bg-gray-50 font-bold text-gray-700 flex justify-between items-center">
+                            <span>Temas Disponibles</span>
+                            <span class="text-xs font-normal text-gray-500">(Arrastra a la derecha)</span>
+                        </div>
+                        <div id="org-pool-list" class="p-4 overflow-y-auto flex-1 bg-gray-100 space-y-2">
+                            <!-- Aquí se inyectarán los temas sueltos -->
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha: Contenedores (Destino) -->
+                    <div class="flex flex-col h-full space-y-4">
+                        <!-- Input para crear nuevo grupo -->
+                        <div class="bg-white p-4 rounded-xl border shadow-sm">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Crear Nuevo Grupo</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="new-container-name" placeholder="Ej: Parcial Mayo, Unidad 1..." class="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                <button id="create-container-btn" class="px-4 py-2 bg-green-600 text-white font-bold rounded-lg text-sm hover:bg-green-700 transition-colors">Crear</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Área donde aparecen los grupos para soltar items -->
+                        <div id="org-containers-area" class="flex-1 overflow-y-auto space-y-4 pr-2 pb-2">
+                            <!-- Aquí se inyectarán los contenedores -->
+                        </div>
+                    </div>
+                </div>
+
             </div>
+
+
 
             <!-- TAB: ADMINISTRAR TEMAS -->
             <div id="tab-topics" class="tab-panel space-y-6">
@@ -561,7 +662,7 @@
         let isFlashcardCreated = false;
         let currentPracticeMode = 'normal';
 
-        const els = {
+                const els = {
             tabs: document.querySelectorAll('.tab-button'),
             panels: document.querySelectorAll('.tab-panel'),
             subjectHeader: document.getElementById('subject-header'),
@@ -625,11 +726,21 @@
             editMcqQuestion: document.getElementById('edit-mcq-question'),
             editMcqOptionsContainer: document.getElementById('edit-mcq-options-container'),
             editMcqJustification: document.getElementById('edit-mcq-justification'),
-            // PROGRESS
             progressModal: document.getElementById('progress-modal'),
             progressTitle: document.getElementById('progress-title'),
             progressBarFill: document.getElementById('progress-bar-fill'),
             progressStep: document.getElementById('progress-step'),
+            
+            // --- NUEVOS ELEMENTOS DEL PARCHE 4 ---
+            regenerateSyllabusBtn: document.getElementById('regenerate-syllabus-btn'),
+            toggleOrgModeBtn: document.getElementById('toggle-org-mode-btn'),
+            createContainerBtn: document.getElementById('create-container-btn'),
+            newContainerInput: document.getElementById('new-container-name'),
+            reviewViewMode: document.getElementById('review-view-mode'),
+            reviewOrgMode: document.getElementById('review-org-mode'),
+            reviewContainersList: document.getElementById('review-containers-list'),
+            orgPoolList: document.getElementById('org-pool-list'),
+            orgContainersArea: document.getElementById('org-containers-area')
         };
 
 
@@ -640,6 +751,86 @@
                     switchTab(target);
                 });
             });
+            document.getElementById('save-sync-id').onclick = () => {
+                const val = document.getElementById('sync-id-input').value.trim();
+                if(val) { localStorage.setItem('my_sync_userId', val); location.reload(); }
+            };
+            document.getElementById('generate-sync-id').onclick = () => {
+                localStorage.setItem('my_sync_userId', crypto.randomUUID()); location.reload();
+            };
+            document.getElementById('change-sync-id').onclick = () => {
+                const newId = prompt("Ingresa tu ID de Sincronización. (Dejar en blanco para generar uno nuevo).", userId);
+                if (newId === null) return;
+                if (newId.trim() === "") localStorage.setItem('my_sync_userId', crypto.randomUUID());
+                else localStorage.setItem('my_sync_userId', newId.trim());
+                location.reload();
+            };
+            els.addSubjectBtn.onclick = createSubject;
+            els.subjectSelect.onchange = changeSubject;
+            document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
+                btn.onclick = () => {
+                    els.pdfInput.dataset.target = btn.dataset.target;
+                    els.pdfInput.click();
+                };
+            });
+            els.pdfInput.onchange = handlePdfFile;
+            document.getElementById('save-material').onclick = saveMaterial;
+
+            els.btnLoadChoice.onclick = () => { els.choiceModeSelection.style.display = 'none'; els.choiceLoadContainer.style.display = 'block'; };
+            els.btnPracticeChoice.onclick = () => { 
+                els.choiceModeSelection.style.display = 'none'; 
+                els.choicePracticeContainer.style.display = 'block'; 
+                if (els.choiceList.innerHTML.includes('italic')) loadChoiceTopics();
+            };
+            els.backModeChoice1.onclick = () => { els.choiceModeSelection.style.display = 'grid'; els.choiceLoadContainer.style.display = 'none'; };
+            els.backModeChoice2.onclick = () => { els.choiceModeSelection.style.display = 'grid'; els.choicePracticeContainer.style.display = 'none'; };
+            els.analyzeBtn.onclick = handleAnalyzeChoice;
+            els.generateChoiceBtn.onclick = handleGenerateChoice;
+            document.getElementById('toggle-sidebar-btn').onclick = toggleFocusMode;
+            
+            els.studyModeBtn.onclick = () => { 
+                els.modeSelection.classList.add('hidden'); 
+                els.studyContainer.classList.remove('hidden'); 
+                loadSyllabusBrowser(); // Ahora usa la lógica persistente
+            };
+            els.examModeBtn.onclick = () => { els.modeSelection.classList.add('hidden'); els.examContainer.classList.remove('hidden'); };
+            document.getElementById('back-mode-1').onclick = resetModes;
+            document.getElementById('back-mode-2').onclick = resetModes;
+            document.getElementById('generate-exam-btn').onclick = generateOralExam;
+
+            els.mergeTopicsBtn.onclick = mergeSelectedTopics;
+            els.createSubtopicBtn.onclick = createSubtopicFromSelected;
+
+            els.syllabusBrowser.addEventListener('click', (e) => {
+                const unitBtn = e.target.closest('.unit-toggle-btn');
+                if (unitBtn) {
+                    toggleAccordion(unitBtn, unitBtn.nextElementSibling); 
+                    return;
+                }
+                const topicBtn = e.target.closest('.syllabus-topic-btn');
+                if (topicBtn) handleStudyTopicSelect(topicBtn);
+            });
+
+            document.getElementById('study-output').addEventListener('click', (e) => {
+                if (e.target.closest('.answer-btn')) handleAnswerClick(e.target.closest('.answer-btn'));
+                 else if (e.target.closest('.audio-btn')) handleAudioClick(e.target.closest('.audio-btn'));
+                 else if (e.target.closest('.save-btn')) handleSaveClick(e.target.closest('.save-btn'));
+                else if (e.target.closest('.edit-item-btn')) toggleEditItem(e.target.closest('.edit-item-btn'));
+                else if (e.target.closest('.generate-more-btn')) handleGenerateMoreQuestions(e.target.closest('.generate-more-btn'));
+            });    
+
+            document.getElementById('edit-qa-cancel').onclick = () => els.editQaModal.style.display = 'none';
+            document.getElementById('edit-qa-save').onclick = saveEditQa;
+            els.confirmNo.onclick = () => els.confirmModal.style.display = 'none';
+            document.getElementById('edit-mcq-cancel').onclick = () => els.editMcqModal.style.display = 'none';
+            document.getElementById('edit-mcq-save').onclick = saveEditMcq;
+
+            // --- NUEVOS LISTENERS DEL PARCHE 4 ---
+            if(els.regenerateSyllabusBtn) els.regenerateSyllabusBtn.onclick = regenerateSyllabus;
+            if(els.toggleOrgModeBtn) els.toggleOrgModeBtn.onclick = toggleReviewOrgMode;
+            if(els.createContainerBtn) els.createContainerBtn.onclick = createReviewContainer;
+                    }
+        
             document.getElementById('save-sync-id').onclick = () => {
                 const val = document.getElementById('sync-id-input').value.trim();
                 if(val) { localStorage.setItem('my_sync_userId', val); location.reload(); }
@@ -918,40 +1109,366 @@
             return chunks;
         }
 
+                // --- LOGICA MODO ORGANIZACIÓN & REPASO (PARCHE 6) ---
+        let isOrgMode = false;
+        let reviewContainersData = [];
+
+        async function toggleReviewOrgMode() {
+            isOrgMode = !isOrgMode;
+            const btn = document.getElementById('toggle-org-mode-btn');
+            
+            if (isOrgMode) {
+                // Activar Modo Organización
+                btn.innerHTML = `<svg data-lucide="check" class="w-4 h-4"></svg> Finalizar`;
+                btn.classList.add('bg-green-50', 'text-green-700', 'border-green-200');
+                els.reviewViewMode.classList.add('hidden');
+                els.reviewOrgMode.classList.remove('hidden');
+                els.reviewOrgMode.style.display = 'grid'; 
+                await loadOrgModeData();
+            } else {
+                // Volver a Modo Vista
+                btn.innerHTML = `<svg data-lucide="layout" class="w-4 h-4"></svg> Organizar`;
+                btn.classList.remove('bg-green-50', 'text-green-700', 'border-green-200');
+                els.reviewOrgMode.classList.add('hidden');
+                els.reviewOrgMode.style.display = 'none';
+                els.reviewViewMode.classList.remove('hidden');
+                loadReviewData(currentSubject); // Recargar para ver los cambios
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        async function loadOrgModeData() {
+            // 1. Cargar configuración de grupos guardada
+            reviewContainersData = [];
+            try {
+                const docRef = doc(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', currentSubject, 'materials', 'review_organization');
+                const snap = await getDoc(docRef);
+                if (snap.exists()) reviewContainersData = snap.data().containers || [];
+            } catch(e) { console.log("Sin contenedores previos"); }
+
+            // 2. Obtener TODOS los temas que existen en tus preguntas (Oral y Choice)
+            const allTopicsSet = new Set();
+            try {
+                // Traemos solo metadatos si fuera posible, pero Firestore requiere leer el doc
+                const q1 = query(collection(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', currentSubject, 'saved_questions'));
+                const q2 = query(collection(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', currentSubject, 'saved_mcq'));
+                
+                const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+                
+                snap1.forEach(d => { if(d.data().topic) allTopicsSet.add(d.data().topic); });
+                snap2.forEach(d => { if(d.data().topic) allTopicsSet.add(d.data().topic); });
+            } catch(e) { console.error(e); }
+            
+            renderOrgMode(Array.from(allTopicsSet));
+        }
+
+        function renderOrgMode(allTopics) {
+            const poolList = document.getElementById('org-pool-list');
+            const containersArea = document.getElementById('org-containers-area');
+            poolList.innerHTML = ''; containersArea.innerHTML = '';
+
+            // Identificar temas ya asignados a algún grupo
+            const assignedTopics = new Set();
+            reviewContainersData.forEach(c => c.topics.forEach(t => assignedTopics.add(t)));
+
+            // A. Renderizar columna izquierda (Temas Sueltos)
+            const sortedTopics = allTopics.sort();
+            if (sortedTopics.length === 0) {
+                poolList.innerHTML = '<p class="text-gray-400 text-sm p-2">No hay temas creados aún.</p>';
+            } else {
+                sortedTopics.forEach(topic => {
+                    // Solo mostramos si NO está asignado a un grupo
+                    if (!assignedTopics.has(topic)) {
+                        poolList.appendChild(createDraggableElement(topic, 'topic'));
+                    }
+                });
+            }
+
+            // B. Renderizar columna derecha (Contenedores)
+            reviewContainersData.forEach((container, idx) => {
+                const div = document.createElement('div');
+                div.className = 'org-container relative';
+                // Header del contenedor
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-2 border-b pb-2">
+                        <span class="font-bold text-blue-800 flex items-center gap-2">
+                            <svg data-lucide="folder" class="w-4 h-4 text-blue-400"></svg> ${container.name}
+                        </span>
+                        <button class="text-red-400 hover:text-red-600 p-1" onclick="deleteContainer(${idx})" title="Eliminar Grupo">
+                            <svg data-lucide="trash-2" class="w-4 h-4"></svg>
+                        </button>
+                    </div>
+                    <div class="org-drop-zone min-h-[50px] space-y-2" data-container-idx="${idx}"></div>
+                `;
+                
+                const dropZone = div.querySelector('.org-drop-zone');
+                
+                // Renderizar temas DENTRO del contenedor
+                container.topics.forEach(topic => {
+                    dropZone.appendChild(createDraggableElement(topic, 'topic-in-container'));
+                });
+
+                // Configurar eventos de Drop
+                setupDropZone(dropZone, idx);
+                containersArea.appendChild(div);
+            });
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function createDraggableElement(text, type) {
+            const div = document.createElement('div');
+            div.className = 'org-topic-item';
+            div.draggable = true;
+            div.dataset.topic = text;
+            div.innerHTML = `<span class="text-sm font-medium text-gray-700">${text}</span> <svg data-lucide="grip-vertical" class="w-4 h-4 text-gray-300"></svg>`;
+            
+            div.ondragstart = (e) => {
+                e.dataTransfer.setData('text/plain', text);
+                // Guardamos referencia global temporal para efectos visuales
+                window.draggedElement = div; 
+                div.classList.add('dragging');
+            };
+            div.ondragend = () => {
+                div.classList.remove('dragging');
+                window.draggedElement = null;
+            };
+            return div;
+        }
+
+        function setupDropZone(el, containerIdx) {
+            el.ondragover = (e) => { e.preventDefault(); el.parentElement.classList.add('drag-over'); };
+            el.ondragleave = () => { el.parentElement.classList.remove('drag-over'); };
+            
+            el.ondrop = async (e) => {
+                e.preventDefault();
+                el.parentElement.classList.remove('drag-over');
+                const topic = e.dataTransfer.getData('text/plain');
+                
+                // Lógica de movimiento:
+                // 1. Buscar y quitar el tema de cualquier otro contenedor donde estuviera
+                reviewContainersData.forEach(c => {
+                    c.topics = c.topics.filter(t => t !== topic);
+                });
+                
+                // 2. Agregarlo a ESTE contenedor (evitando duplicados)
+                if (!reviewContainersData[containerIdx].topics.includes(topic)) {
+                    reviewContainersData[containerIdx].topics.push(topic);
+                }
+
+                // 3. Guardar y refrescar UI
+                await saveReviewOrganization();
+                await loadOrgModeData(); 
+            };
+        }
+
+        async function createReviewContainer() {
+            const name = els.newContainerInput.value.trim();
+            if (!name) return;
+            // Agregar nuevo grupo vacío
+            reviewContainersData.push({ name: name, topics: [] });
+            els.newContainerInput.value = '';
+            await saveReviewOrganization();
+            await loadOrgModeData();
+        }
+
+        async function deleteContainer(idx) {
+            if(!confirm("¿Eliminar este grupo? Los temas volverán a la lista de 'Disponibles'.")) return;
+            reviewContainersData.splice(idx, 1);
+            await saveReviewOrganization();
+            await loadOrgModeData();
+        }
+
+        async function saveReviewOrganization() {
+            try {
+                await setDoc(doc(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', currentSubject, 'materials', 'review_organization'), { 
+                    containers: reviewContainersData 
+                }, { merge: true });
+            } catch(e) { console.error("Error guardando organización", e); }
+        }
+
+        // --- NUEVA VERSIÓN DE LOADREVIEWDATA (REEMPLAZA A LA ANTERIOR) ---
         async function loadReviewData(subject) {
             els.reviewLoader.style.display = 'block';
+            
+            // Limpiar UI
+            if(els.reviewContainersList) els.reviewContainersList.innerHTML = '';
             els.reviewList.innerHTML = '';
             els.reviewOverdue.style.display = 'none';
+
+            // Títulos
             if (subject === 'all') {
-                els.reviewTitle.textContent = "Repaso Global (Todas las Materias)";
-                els.reviewSubtitle.textContent = "Tarjetas vencidas de todas tus materias.";
+                els.reviewTitle.textContent = "Repaso Global";
+                els.reviewSubtitle.textContent = "Todas tus materias.";
             } else {
-                els.reviewTitle.textContent = `Repaso (SRS) - ${subject}`;
-                els.reviewSubtitle.textContent = "Tarjetas de Oral y Choice para esta materia.";
+                els.reviewTitle.textContent = `Repaso: ${subject}`;
+                els.reviewSubtitle.textContent = "Modo Organizado";
             }
+
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            let allDueCards = [];
+            let allDueCards = []; // Todas las tarjetas que tocan hoy (o vencidas)
+            let allCardsTotal = []; // Para calcular el progreso (mastered vs total)
+
             try {
                 const subjectsToQuery = (subject === 'all') ? allSubjectNames : [subject];
+                
+                // 1. Obtener tarjetas (Vencidas y Totales para calcular progreso)
                 for (const subj of subjectsToQuery) {
-                    const q = query(collection(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', subj, 'saved_questions'), where('nextReviewDate', '<=', now));
+                    const q = query(collection(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', subj, 'saved_questions'));
                     const snap = await getDocs(q);
-                    snap.forEach(d => { allDueCards.push({ id: d.id, subject: subj, ...d.data() }); });
+                    snap.forEach(d => {
+                        const data = { id: d.id, subject: subj, ...d.data() };
+                        allCardsTotal.push(data); // Todas (para la barra de progreso)
+                        
+                        // Filtrar solo las que tocan hoy para "Repasar"
+                        if (data.nextReviewDate && data.nextReviewDate.toDate() <= now) {
+                            allDueCards.push(data);
+                        }
+                    });
                 }
+
                 els.reviewLoader.style.display = 'none';
                 els.reviewCount.textContent = allDueCards.length;
+
+                // Aviso de vencidas
                 const overdueCount = allDueCards.filter(c => c.nextReviewDate.toDate() < today).length;
                 if (overdueCount > 0) {
-                    els.reviewOverdue.textContent = `[!] ¡Atención! Tienes ${overdueCount} tarjetas vencidas de días anteriores. Se mostrarán primero.`;
+                    els.reviewOverdue.textContent = `Tienes ${overdueCount} tarjetas atrasadas.`;
                     els.reviewOverdue.style.display = 'block';
                 }
-                renderReviewCards(allDueCards, subject === 'all');
+
+                // 2. Cargar Organización de Grupos
+                let containers = [];
+                if (subject !== 'all') {
+                    try {
+                        const orgSnap = await getDoc(doc(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', subject, 'materials', 'review_organization'));
+                        if (orgSnap.exists()) containers = orgSnap.data().containers || [];
+                    } catch(e) {}
+                }
+
+                // 3. Renderizar Grupos (Contenedores)
+                if (containers.length > 0 && els.reviewContainersList) {
+                    containers.forEach(cont => {
+                        // Filtrar tarjetas que pertenecen a este grupo
+                        // A. Para calcular progreso (todas las del tema)
+                        const groupCardsTotal = allCardsTotal.filter(c => cont.topics.includes(c.topic));
+                        // B. Para repasar hoy (solo vencidas)
+                        const groupCardsDue = allDueCards.filter(c => cont.topics.includes(c.topic));
+
+                        // Calculo Progreso: (Tarjetas con reviewStep > 0) / Total
+                        const learnedCards = groupCardsTotal.filter(c => c.reviewStep > 0).length;
+                        const totalGroup = groupCardsTotal.length;
+                        const progress = totalGroup > 0 ? Math.round((learnedCards / totalGroup) * 100) : 0;
+
+                        const div = document.createElement('div');
+                        div.className = 'review-group-card';
+                        div.innerHTML = `
+                            <div class="review-group-header" onclick="this.parentElement.classList.toggle('expanded')">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                        <svg data-lucide="folder-open" class="w-5 h-5 text-blue-500"></svg> ${cont.name}
+                                    </span>
+                                    ${groupCardsDue.length > 0 
+                                        ? `<span class="text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-600 shadow-sm animate-pulse">${groupCardsDue.length} para hoy</span>` 
+                                        : `<span class="text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-600 shadow-sm"><svg data-lucide="check" class="w-3 h-3 inline"></svg> Al día</span>`
+                                    }
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-500 mt-2 px-1">
+                                    <span>${cont.topics.length} temas</span>
+                                    <span>Dominio: ${progress}%</span>
+                                </div>
+                                <div class="group-progress-bg">
+                                    <div class="group-progress-fill" style="width: ${progress}%"></div>
+                                </div>
+                            </div>
+                            <div class="review-group-body">
+                                ${groupCardsDue.length > 0 ? 
+                                    `<button class="w-full py-3 mb-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md transition-all flex justify-center items-center gap-2"
+                                        onclick="startAnkiSessionFromGroup(['${cont.topics.join("','")}'])">
+                                        <svg data-lucide="play" class="w-4 h-4 fill-current"></svg> Repasar Grupo (${groupCardsDue.length})
+                                    </button>` 
+                                    : `<p class="text-center text-gray-400 text-sm mb-4 italic">No hay tarjetas pendientes en este grupo.</p>`
+                                }
+                                
+                                <div class="space-y-1 border-t pt-2">
+                                    <p class="text-xs font-bold text-gray-400 uppercase mb-2">Temas en este grupo:</p>
+                                    ${cont.topics.map(topic => {
+                                        const tDue = groupCardsDue.filter(c => c.topic === topic).length;
+                                        return `
+                                            <div class="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-100 text-sm">
+                                                <span class="text-gray-700">${topic}</span>
+                                                ${tDue > 0 ? `<span class="text-red-500 font-bold text-xs">${tDue}</span>` : `<svg data-lucide="check-circle" class="w-3 h-3 text-green-400"></svg>`}
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                        els.reviewContainersList.appendChild(div);
+                    });
+                }
+
+                // 4. Renderizar Temas Sueltos (Lo que no está en contenedores)
+                const assignedTopics = new Set();
+                containers.forEach(c => c.topics.forEach(t => assignedTopics.add(t)));
+                
+                const looseCards = allDueCards.filter(c => !assignedTopics.has(c.topic));
+                
+                // Usamos la lógica antigua de renderizado para los sueltos
+                renderReviewCards(looseCards, subject === 'all');
+
             } catch (error) {
                 console.error("Error cargando repasos:", error);
-                els.reviewLoader.style.display = 'none';
-                els.reviewList.innerHTML = '<p class="text-red-500">Error al cargar repasos. Revisa la consola.</p>';
+                els.reviewList.innerHTML = '<p class="text-red-500">Error al cargar datos.</p>';
             }
+        }
+
+        // Helper para iniciar sesión filtrada por temas
+        async function startAnkiSessionFromGroup(topicsArray) {
+            // Reutilizamos lógica: buscamos las cartas de estos temas que venzan hoy
+            const now = new Date();
+            let cardsToPlay = [];
+            
+            try {
+                // Nota: Firestore "in" soporta max 10 items. Si un grupo tiene más de 10 temas,
+                // es más seguro traer todo y filtrar en JS (ya tenemos caché parcial, pero por seguridad hacemos query simple)
+                const q = query(collection(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', currentSubject, 'saved_questions'));
+                const snap = await getDocs(q);
+                
+                snap.forEach(d => {
+                    const data = { id: d.id, ...d.data() };
+                    // Si el tema está en la lista Y vence hoy
+                    if (topicsArray.includes(data.topic) && data.nextReviewDate && data.nextReviewDate.toDate() <= now) {
+                        cardsToPlay.push(data);
+                    }
+                });
+
+                if (cardsToPlay.length === 0) { alert("¡Ya repasaste todo en este grupo!"); return; }
+
+                // Usamos un contenedor temporal modal o el mismo div de review
+                // Ocultamos la lista y mostramos la zona de práctica (reutilizando roadmapPractice por comodidad)
+                els.reviewViewMode.classList.add('hidden');
+                els.reviewOrgMode.classList.add('hidden'); // Asegurar oculto
+                
+                // Creamos un contenedor temporal si no existe
+                let practiceContainer = document.getElementById('group-practice-session');
+                if(!practiceContainer) {
+                    practiceContainer = document.createElement('div');
+                    practiceContainer.id = 'group-practice-session';
+                    els.reviewList.parentNode.appendChild(practiceContainer);
+                }
+                practiceContainer.style.display = 'block';
+                practiceContainer.innerHTML = '';
+
+                // Iniciar sesión
+                startAnkiSession(cardsToPlay, practiceContainer, () => {
+                    practiceContainer.style.display = 'none';
+                    els.reviewViewMode.classList.remove('hidden');
+                    loadReviewData(currentSubject); // Recargar al terminar
+                });
+
+            } catch(e) { console.error(e); alert("Error al iniciar grupo."); }
         }
 
         async function loadRoadmapData(subject) {
@@ -1544,47 +2061,88 @@
             } catch (e) { console.error(e); showError("Error al actualizar."); }
         }
         
-        async function loadSyllabusBrowser() {
+                async function loadSyllabusBrowser(forceRegenerate = false) {
              if (!currentSubject || currentSubject === 'all') { els.syllabusBrowser.innerHTML = '<p class="text-gray-400 text-center py-10">Selecciona una materia.</p>'; return; }
             
-            // Usar Overlay de progreso
-            showProgress("Modo Estudio", "Analizando material...", 15);
+             // 1. Intentar cargar desde DB si no forzamos regenerar
+             if (!forceRegenerate) {
+                 els.syllabusBrowser.innerHTML = '<div class="loader"></div><p class="text-center text-gray-500">Buscando estructura guardada...</p>';
+                 try {
+                     const docRef = doc(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', currentSubject, 'materials', 'syllabus_structure');
+                     const docSnap = await getDoc(docRef);
+                     if (docSnap.exists()) {
+                         renderSyllabus(docSnap.data().structure);
+                         // Mostrar botón de regenerar por si el usuario quiere actualizar
+                         if(document.getElementById('regenerate-syllabus-btn')) {
+                            document.getElementById('regenerate-syllabus-btn').style.display = 'flex';
+                         }
+                         return; // Terminamos aquí si cargó de DB
+                     }
+                 } catch (e) { console.warn("No se pudo cargar estructura guardada, generando nueva...", e); }
+             }
+
+            // 2. Si no existe guardada o forzamos regenerar: Generar con IA
+            showProgress("Modo Estudio", "Analizando todo el material con IA...", 15);
             
             try {
                 const syllabus = document.getElementById('syllabus').value;
                 const theory = document.getElementById('theory').value;
                 const experiences = document.getElementById('experiences').value;
 
-                // Prioridad inteligente (límite amplio 300k)
-                // MODO 'syllabus' para priorizar temario
+                // Prioridad inteligente
                 const smartContext = buildSmartContext(syllabus, theory, experiences, 300000, 'syllabus');
                 
                 const structuredSyllabus = await parseSyllabusWithAI(smartContext);
                 
-                showProgress("Modo Estudio", "Creando estructura...", 80);
+                showProgress("Modo Estudio", "Guardando estructura...", 90);
                 
-                const container = document.getElementById('syllabus-browser');
-                container.innerHTML = '';
-                structuredSyllabus.forEach(unit => {
-                    const div = document.createElement('div');
-                    div.innerHTML = `<button class="accordion-btn text-lg unit-toggle-btn">${unit.unit} <span class="toggle-icon" data-lucide="chevron-down"></span></button>`;
-                    const topicsContainer = document.createElement('div');
-                    topicsContainer.className = 'accordion-content';
-                    topicsContainer.innerHTML = unit.topics.map(t => `<button class="syllabus-topic-btn" data-unit="${unit.unit.replace(/"/g, "'")}" data-topic="${t.replace(/"/g, "'")}">${t}</button>`).join('');
-                    div.appendChild(topicsContainer); container.appendChild(div);
+                // Guardar en DB para la próxima vez
+                await setDoc(doc(db, 'artifacts', firebaseConfig.projectId, 'users', userId, 'subjects', currentSubject, 'materials', 'syllabus_structure'), { 
+                    structure: structuredSyllabus, 
+                    updatedAt: serverTimestamp() 
                 });
                 
-                showProgress("Modo Estudio", "¡Listo!", 100);
+                renderSyllabus(structuredSyllabus);
+                
+                if(document.getElementById('regenerate-syllabus-btn')) {
+                    document.getElementById('regenerate-syllabus-btn').style.display = 'flex';
+                }
+                
                 await sleep(500);
                 hideProgress();
-
-                if (typeof lucide !== 'undefined') lucide.createIcons();
             } catch (e) { 
                 hideProgress();
                 console.error(e); 
                 els.syllabusBrowser.innerHTML = `<p class="text-red-500">Error: ${e.message}</p>`; 
             }
         }
+
+        // Nueva función auxiliar para separar la lógica de visualización
+        function renderSyllabus(structure) {
+            const container = document.getElementById('syllabus-browser');
+            container.innerHTML = '';
+            if (!structure || structure.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No se encontraron temas.</p>';
+                return;
+            }
+            structure.forEach(unit => {
+                const div = document.createElement('div');
+                div.innerHTML = `<button class="accordion-btn text-lg unit-toggle-btn">${unit.unit} <span class="toggle-icon" data-lucide="chevron-down"></span></button>`;
+                const topicsContainer = document.createElement('div');
+                topicsContainer.className = 'accordion-content';
+                topicsContainer.innerHTML = unit.topics.map(t => `<button class="syllabus-topic-btn" data-unit="${unit.unit.replace(/"/g, "'")}" data-topic="${t.replace(/"/g, "'")}">${t}</button>`).join('');
+                div.appendChild(topicsContainer); container.appendChild(div);
+            });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        async function regenerateSyllabus() {
+            if(confirm("¿Seguro que quieres regenerar la estructura de temas? Esto analizará de nuevo los PDFs y sobrescribirá la organización actual.")) {
+                loadSyllabusBrowser(true);
+            }
+        }
+
+        //FIN PARCHE 5 
         
         async function parseSyllabusWithAI(fullMaterial) {
              const prompt = `Analiza el material (Priorizando Experiencias y Syllabus) y genera una estructura de temas lógica en JSON: [{ "unit": "Nombre Unidad", "topics": ["Tema 1", "Tema 2"] }] Material: ${fullMaterial}`;
