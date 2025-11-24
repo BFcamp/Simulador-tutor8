@@ -1398,6 +1398,8 @@
             } catch(e) { console.error(e); alert("Error al iniciar grupo."); }
         }
 
+        //FIN PARCHE 6
+
         async function loadRoadmapData(subject) {
             els.roadmapLoader.style.display = 'block';
             els.roadmapList.innerHTML = '';
@@ -2403,8 +2405,7 @@
         const API_KEY = "AIzaSyCcnQiY3wkGkJpOotfJxyVQg4fi2OKzHhY"; 
 
         async function callGeminiAPI(userQuery, expectJson, systemPrompt = null, generationConfig = null) {
-           const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
-            const payload = { contents: [{ parts: [{ text: userQuery }] }] };
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
             if (systemPrompt) payload.systemInstruction = { parts: [{ text: systemPrompt }] };
             let finalGenConfig = generationConfig || {};
             if (expectJson && !finalGenConfig.responseMimeType) finalGenConfig.responseMimeType = "application/json";
