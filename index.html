@@ -645,6 +645,13 @@
         const auth = getAuth(app);
         
         let userId = localStorage.getItem('my_sync_userId');
+        // --- PARCHE INICIO: Mostrar ID inmediatamente si existe ---
+        if (userId && document.getElementById('user-id')) {
+        document.getElementById('user-id').textContent = userId;
+        document.getElementById('sync-id-display').style.display = 'block';
+        }
+        // --- PARCHE FIN ---
+
         let currentSubject = null;
         let allSubjectNames = [];
         let currentTab = 'tab-material';
