@@ -2405,38 +2405,62 @@
 
         const API_KEY = "AIzaSyCcnQiY3wkGkJpOotfJxyVQg4fi2OKzHhY"; 
 
-       async function callGeminiAPI(userQuery, expectJson, systemPrompt = null, generationConfig = null) {
-            // 1. URL DE LA VERSIÓN ESTABLE (1.5 Flash)
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+      async function callGeminiAPI(userQuery, expectJson, systemPrompt = null, generationConfig = null) {
+            // LISTA DE MODELOS: Intentamos Flash primero, si falla (404), saltamos al Pro.
+            const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
             
-            // 2. DEFINICIÓN DEL PAYLOAD (Esto faltaba y causaba el error)
+            // Construimos el payload una sola vez
             const payload = { contents: [{ parts: [{ text: userQuery }] }] };
-
-            // Configuración adicional (System Prompt y JSON)
             if (systemPrompt) payload.systemInstruction = { parts: [{ text: systemPrompt }] };
             
             let finalGenConfig = generationConfig || {};
             if (expectJson && !finalGenConfig.responseMimeType) finalGenConfig.responseMimeType = "application/json";
-            
             if (Object.keys(finalGenConfig).length > 0) payload.generationConfig = finalGenConfig;
             
-            let retries = 5; 
-            let delay = 2000;
-            
-            while (retries > 0) {
-                try {
-                    const resp = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                    if (!resp.ok) throw new Error(`API Error: ${resp.status}`);
-                    const json = await resp.json();
-                    return json.candidates[0].content.parts[0].text;
-                } catch (error) {
-                    console.warn(`Intento fallido. Reintentando en ${delay/1000}s... Error:`, error);
-                    retries--;
-                    if (retries === 0) throw error;
-                    await new Promise(res => setTimeout(res, delay));
-                    delay *= 2;
+            let lastError = null;
+
+            // Bucle para probar modelos en orden
+            for (const model of models) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+                
+                // Reintentos (backoff) solo para errores de red, no para 404
+                let retries = 3;
+                let delay = 2000;
+
+                while (retries > 0) {
+                    try {
+                        const resp = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                        
+                        // Si el modelo no existe (404), rompemos este while para ir al siguiente modelo del 'for'
+                        if (resp.status === 404) {
+                            console.warn(`Modelo ${model} dio 404. Probando siguiente...`);
+                            break; 
+                        }
+
+                        if (!resp.ok) throw new Error(`API Error: ${resp.status}`);
+                        
+                        const json = await resp.json();
+                        return json.candidates[0].content.parts[0].text;
+
+                    } catch (error) {
+                        // Si es error de red, esperamos y reintentamos el MISMO modelo
+                        if (retries > 1 && !error.message.includes('404')) {
+                            console.warn(`Reintentando ${model}... (${retries})`);
+                            await new Promise(res => setTimeout(res, delay));
+                            retries--;
+                        } else {
+                            // Si se acabaron los intentos o fue otro error, guardamos el error y salimos
+                            lastError = error;
+                            break;
+                        }
+                    }
                 }
+                // Si el error NO fue 404 y llegamos aquí, es que falló por otra cosa (ej: clave inválida).
+                // Pero si FUE 404, el loop 'for' continuará limpiamente al 'gemini-1.5-pro'.
             }
+            
+            // Si fallaron todos los modelos
+            throw lastError || new Error("Error: No se pudo conectar con ningún modelo de IA.");
         }
 
         function showError(msg, isError = true) {
