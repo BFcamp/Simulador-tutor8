@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -645,13 +646,6 @@
         const auth = getAuth(app);
         
         let userId = localStorage.getItem('my_sync_userId');
-        // --- PARCHE INICIO: Mostrar ID inmediatamente si existe ---
-        if (userId && document.getElementById('user-id')) {
-        document.getElementById('user-id').textContent = userId;
-        document.getElementById('sync-id-display').style.display = 'block';
-        }
-        // --- PARCHE FIN ---
-
         let currentSubject = null;
         let allSubjectNames = [];
         let currentTab = 'tab-material';
@@ -2411,37 +2405,21 @@
 
         const API_KEY = "AIzaSyCcnQiY3wkGkJpOotfJxyVQg4fi2OKzHhY"; 
 
-          async function callGeminiAPI(userQuery, expectJson, systemPrompt = null, generationConfig = null) {
-           // 1. Usamos el modelo estable 1.5-flash
-           const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+       async function callGeminiAPI(userQuery, expectJson, systemPrompt = null, generationConfig = null) {
+            // 1. URL DE LA VERSIÓN ESTABLE (1.5 Flash)
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
             
-           // 2. ESTA ES LA LÍNEA QUE FALTABA (La definición del payload)
-           const payload = { contents: [{ parts: [{ text: userQuery }] }] };
+            // 2. DEFINICIÓN DEL PAYLOAD (Esto faltaba y causaba el error)
+            const payload = { contents: [{ parts: [{ text: userQuery }] }] };
 
-           // Configuración adicional
-           if (systemPrompt) payload.systemInstruction = { parts: [{ text: systemPrompt }] };
-           let finalGenConfig = generationConfig || {};
-           if (expectJson && !finalGenConfig.responseMimeType) finalGenConfig.responseMimeType = "application/json";
-           if (Object.keys(finalGenConfig).length > 0) payload.generationConfig = finalGenConfig;
+            // Configuración adicional (System Prompt y JSON)
+            if (systemPrompt) payload.systemInstruction = { parts: [{ text: systemPrompt }] };
             
-           let retries = 5; 
-           let delay = 2000;
+            let finalGenConfig = generationConfig || {};
+            if (expectJson && !finalGenConfig.responseMimeType) finalGenConfig.responseMimeType = "application/json";
             
-           while (retries > 0) {
-                try {
-                    const resp = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                    if (!resp.ok) throw new Error(`API Error: ${resp.status}`);
-                    const json = await resp.json();
-                    return json.candidates[0].content.parts[0].text;
-                } catch (error) {
-                    console.warn(`Intento fallido. Reintentando en ${delay/1000}s... Error:`, error);
-                    retries--;
-                    if (retries === 0) throw error;
-                    await new Promise(res => setTimeout(res, delay));
-                    delay *= 2;
-                }
-            }
-        }          
+            if (Object.keys(finalGenConfig).length > 0) payload.generationConfig = finalGenConfig;
+            
             let retries = 5; 
             let delay = 2000;
             
